@@ -116,7 +116,6 @@ def get_deployment_status(deployment_name, namespace=None):
 
 
 def check_deployment(deployment_name, namespace=None):
-    print("\n")
     print("---CHECKING DEPLOYMENT STATUS---")
     for i in range(TIME_TO_WAIT):
         ready = get_deployment_status(deployment_name=deployment_name, namespace=namespace)
@@ -135,7 +134,6 @@ def check_deployment(deployment_name, namespace=None):
 
 
 if __name__ == '__main__':
-    print("\n\n")
     args = parse_command_line_args()
 
     if args.get_credentials:
