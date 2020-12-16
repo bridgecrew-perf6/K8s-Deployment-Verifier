@@ -2,6 +2,7 @@ import argparse
 import sys
 import subprocess
 import time
+import json
 
 TIME_TO_WAIT = 10
 
@@ -88,6 +89,8 @@ def get_credentials(cluster_name, project_id=None, zone=None):
     stdout, stderr = process.communicate()
 
     if process.returncode:
+        print(stdout)
+        print(stderr)
         exit(process.returncode)
     else:
         print("---CREDENTIALS FETCHED---")
@@ -100,32 +103,34 @@ def get_deployment_status(deployment_name, namespace=None):
         command.append('--namespace')
         command.append(namespace)
 
+    command.append('-o')
+    command.append('json')
+
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = process.communicate()
 
     if process.returncode:
+        print(stdout)
+        print(stderr)
         exit(process.returncode)
     else:
         if stdout != "":
-            status = stdout.decode('utf-8').split('\n')[1]
+            status = json.loads(stdout.decode('utf-8'))['status']
         else:
-            status = stderr.decode('utf-8').split('\n')[1]
-        statusline = " ".join(status.split()).split()
-        ready = statusline[1]
-        return ready
+            status = json.loads(stderr.decode('utf-8'))['status']
+        notready = status['unavailableReplicas'] if 'unavailableReplicas' in status else 0
+        return notready
 
 
 def check_deployment(deployment_name, namespace=None):
     print("---CHECKING DEPLOYMENT STATUS---")
     for i in range(TIME_TO_WAIT):
-        ready = get_deployment_status(deployment_name=deployment_name, namespace=namespace)
-        available = ready.split("/")[0]
-        total = ready.split("/")[1]
+        notready = get_deployment_status(deployment_name=deployment_name, namespace=namespace)
 
-        print("{} out of {} pods available.".format(available, total))
+        print("{} unavailable replicas.".format(notready))
 
-        if available == total:
-            print("{} is ready!".format(deployment_name))
+        if notready == 0:
+            print("{} deployment active!".format(deployment_name))
             return True
 
         time.sleep(1)
